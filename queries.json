@@ -1,0 +1,205 @@
+{
+
+    "count_0_0_1": {
+        "influx": "from(bucket: \"example_bucket0\") |> range(start: 0) |> filter(fn: (r) => r._measurement == \"example_measurement0\") |> filter(fn: (r) => r._field == \"field1\") |> count() |> group(columns: []) |> sum() |> yield(name: \"total_count\")",
+        "postgres": "SELECT SUM(count) FROM (SELECT COUNT(field1) AS count FROM example_table0 WHERE measurement = 'example_measurement0') subquery;"
+        
+    },
+    "count_0_0_3": {
+        "influx": "from(bucket: \"example_bucket0\") |> range(start: 0) |> filter(fn: (r) => r._measurement == \"example_measurement0\") |> filter(fn: (r) => r._field == \"field1\" or r._field == \"field2\" or r._field == \"field3\") |> count() |> group(columns: []) |> sum() |> yield(name: \"total_count\")",
+        "postgres": "SELECT SUM(count) FROM (SELECT COUNT(field1) + COUNT(field2) + COUNT(field3) AS count FROM example_table0 WHERE measurement='example_measurement0') subquery;"
+        
+    },
+    "count_0_2_1": {
+        "influx": "from(bucket: \"example_bucket0\") |> range(start: 0) |> filter(fn: (r) => r._field == \"field1\") |> count() |> group(columns: []) |> sum() |> yield(name: \"total_count\")",
+        "postgres": "SELECT SUM(count) FROM (SELECT COUNT(field1) AS count FROM example_table0) subquery;"
+        
+    },
+    "count_0_2_3": {
+        "influx": "from(bucket: \"example_bucket0\") |> range(start: 0)  |> filter(fn: (r) => r._field == \"field1\" or r._field == \"field2\" or r._field == \"field3\") |> count() |> group(columns: []) |> sum() |> yield(name: \"total_count\")",
+        "postgres": "SELECT SUM(count) FROM (SELECT COUNT(field1) + COUNT(field2) + COUNT(field3) AS count FROM example_table0) subquery;"
+        
+    },
+    "count_2_2_1": {
+        "influx": "union(tables:[from(bucket: \"example_bucket0\") |> range(start: 0)  |> filter(fn: (r) => r._field == \"field1\") |> count(), from(bucket: \"example_bucket1\") |> range(start: 0)  |> filter(fn: (r) => r._field == \"field1\") |> count(), from(bucket: \"example_bucket2\") |> range(start: 0)  |> filter(fn: (r) => r._field == \"field1\") |> count()]) |> group(columns: []) |> sum() |> yield(name: \"total_count\")",
+        "postgres": "SELECT SUM(count) FROM (SELECT COUNT(field1) AS count FROM example_table0 UNION ALL SELECT COUNT(field1) FROM example_table1 UNION ALL SELECT COUNT(field1) FROM example_table2) subquery;"
+        
+    },
+    "count_2_2_3": {
+        "influx": "union(tables:[from(bucket: \"example_bucket0\") |> range(start: 0)  |> filter(fn: (r) => r._field == \"field1\" or r._field == \"field2\" or r._field == \"field3\") |> count(), from(bucket: \"example_bucket1\") |> range(start: 0)  |> filter(fn: (r) => r._field == \"field1\" or r._field == \"field2\" or r._field == \"field3\") |> count(), from(bucket: \"example_bucket2\") |> range(start: 0)  |> filter(fn: (r) => r._field == \"field1\" or r._field == \"field2\" or r._field == \"field3\") |> count()]) |> group(columns: []) |> sum() |> yield(name: \"total_count\")",
+        "postgres": "SELECT SUM(count) FROM (SELECT COUNT(field1) + COUNT(field2) + COUNT(field3) AS count FROM example_table0 UNION ALL SELECT COUNT(field1) + COUNT(field2) + COUNT(field3) FROM example_table1 UNION ALL SELECT COUNT(field1) + COUNT(field2) + COUNT(field3) FROM example_table2) subquery;"
+        
+    },
+    "integral_0_0_1": {
+    "influx": "from(bucket: \"example_bucket0\") |> range(start: 0) |> filter(fn: (r) => r._measurement == \"example_measurement0\") |> filter(fn: (r) => r._field == \"field1\") |> integral()",
+    "postgres": "SELECT SUM((next_time - timestamp) * (field1 + next_field1) / (2 * (SELECT SUM(next_time - timestamp) FROM (SELECT timestamp, LEAD(timestamp) OVER (ORDER BY timestamp) AS next_time FROM example_table0 WHERE measurement='example_measurement0') t WHERE next_time IS NOT NULL))) AS weighted_integral FROM (SELECT timestamp, field1, LEAD(timestamp) OVER (ORDER BY timestamp) AS next_time, LEAD(field1) OVER (ORDER BY timestamp) AS next_field1 FROM example_table0 WHERE measurement='example_measurement0') t WHERE next_time IS NOT NULL;"
+  }, 
+  "integral_0_0_3": {
+    "influx": "from(bucket: \"example_bucket0\") |> range(start: 0) |> filter(fn: (r) => r._measurement == \"example_measurement0\") |> filter(fn: (r) => r._field == \"field1\" or r._field == \"field2\" or r._field == \"field3\") |> integral() |> sum() |> group() |> sum(column:\"_value\")",
+    "postgres": "SELECT SUM(integral_value1 + integral_value2 + integral_value3) / SUM(total_time) AS normalized_integral FROM (SELECT SUM((next_time - timestamp) * (field1 + next_value1) / 2) AS integral_value1, SUM((next_time - timestamp) * (field2 + next_value2) / 2) AS integral_value2, SUM((next_time - timestamp) * (field3 + next_value3) / 2) AS integral_value3, SUM(next_time - timestamp) AS total_time FROM (SELECT timestamp, field1, field2, field3, LEAD(timestamp) OVER (ORDER BY timestamp) AS next_time, LEAD(field1) OVER (ORDER BY timestamp) AS next_value1, LEAD(field2) OVER (ORDER BY timestamp) AS next_value2, LEAD(field3) OVER (ORDER BY timestamp) AS next_value3 FROM example_table0 WHERE measurement = 'example_measurement0') t WHERE next_time IS NOT NULL) AS integrals;"
+  },
+  "integral_0_2_1": {
+    "influx": "from(bucket: \"example_bucket0\") |> range(start: 0) |> filter(fn: (r) => r._field == \"field1\") |> integral() |> group() |> sum(column: \"_value\")",
+    "postgres": "SELECT SUM(integral_value) AS total_integral FROM ( SELECT SUM((next_time - timestamp) * (field1 + next_value1) / 2) AS integral_value FROM ( SELECT timestamp, field1, LEAD(timestamp) OVER (ORDER BY timestamp) AS next_time, LEAD(field1) OVER (ORDER BY timestamp) AS next_value1 FROM example_table0 WHERE measurement = 'example_measurement0' ) t WHERE next_time IS NOT NULL UNION ALL SELECT SUM((next_time - timestamp) * (field1 + next_value1) / 2) AS integral_value FROM ( SELECT timestamp, field1, LEAD(timestamp) OVER (ORDER BY timestamp) AS next_time, LEAD(field1) OVER (ORDER BY timestamp) AS next_value1 FROM example_table0 WHERE measurement = 'example_measurement1' ) t WHERE next_time IS NOT NULL UNION ALL SELECT SUM((next_time - timestamp) * (field1 + next_value1) / 2) AS integral_value FROM ( SELECT timestamp, field1, LEAD(timestamp) OVER (ORDER BY timestamp) AS next_time, LEAD(field1) OVER (ORDER BY timestamp) AS next_value1 FROM example_table0 WHERE measurement = 'example_measurement2' ) t WHERE next_time IS NOT NULL ) integrals;"
+  },
+  "integral_0_2_3": {
+    "influx": "from(bucket: \"example_bucket0\") |> range(start: 0) |> filter(fn: (r) => r._field == \"field1\" or r._field == \"field2\" or r._field == \"field3\") |> integral() |> group() |> sum(column: \"_value\")",
+    "postgres": "SELECT SUM(integral_value1 + integral_value2 + integral_value3) AS total_integral FROM ( SELECT SUM((next_time - timestamp) * (field1 + next_value1) / 2) AS integral_value1, SUM((next_time - timestamp) * (field2 + next_value2) / 2) AS integral_value2, SUM((next_time - timestamp) * (field3 + next_value3) / 2) AS integral_value3 FROM ( SELECT timestamp, field1, field2, field3, LEAD(timestamp) OVER (ORDER BY timestamp) AS next_time, LEAD(field1) OVER (ORDER BY timestamp) AS next_value1, LEAD(field2) OVER (ORDER BY timestamp) AS next_value2, LEAD(field3) OVER (ORDER BY timestamp) AS next_value3 FROM example_table0 WHERE measurement = 'example_measurement0' ) t WHERE next_time IS NOT NULL UNION ALL SELECT SUM((next_time - timestamp) * (field1 + next_value1) / 2) AS integral_value1, SUM((next_time - timestamp) * (field2 + next_value2) / 2) AS integral_value2, SUM((next_time - timestamp) * (field3 + next_value3) / 2) AS integral_value3 FROM ( SELECT timestamp, field1, field2, field3, LEAD(timestamp) OVER (ORDER BY timestamp) AS next_time, LEAD(field1) OVER (ORDER BY timestamp) AS next_value1, LEAD(field2) OVER (ORDER BY timestamp) AS next_value2, LEAD(field3) OVER (ORDER BY timestamp) AS next_value3 FROM example_table0 WHERE measurement = 'example_measurement1' ) t WHERE next_time IS NOT NULL UNION ALL SELECT SUM((next_time - timestamp) * (field1 + next_value1) / 2) AS integral_value1, SUM((next_time - timestamp) * (field2 + next_value2) / 2) AS integral_value2, SUM((next_time - timestamp) * (field3 + next_value3) / 2) AS integral_value3 FROM ( SELECT timestamp, field1, field2, field3, LEAD(timestamp) OVER (ORDER BY timestamp) AS next_time, LEAD(field1) OVER (ORDER BY timestamp) AS next_value1, LEAD(field2) OVER (ORDER BY timestamp) AS next_value2, LEAD(field3) OVER (ORDER BY timestamp) AS next_value3 FROM example_table0 WHERE measurement = 'example_measurement2' ) t WHERE next_time IS NOT NULL ) integrals;"
+  },
+  "integral_2_2_1": {
+    "influx": "union(tables:[from(bucket: \"example_bucket0\") |> range(start: 0)  |> filter(fn: (r) => r._field == \"field1\"), from(bucket: \"example_bucket1\") |> range(start: 0)  |> filter(fn: (r) => r._field == \"field1\"), from(bucket: \"example_bucket2\") |> range(start: 0)  |> filter(fn: (r) => r._field == \"field1\")]) |> sort(columns: [\"_time\"]) |> integral() |> group(columns: []) |> sum(column:\"_value\")",
+    "postgres": "SELECT SUM(integral_value) AS total_integral FROM ( SELECT SUM((next_time - timestamp) * (field1 + next_value1) / 2) AS integral_value FROM ( SELECT timestamp, field1, LEAD(timestamp) OVER (ORDER BY timestamp) AS next_time, LEAD(field1) OVER (ORDER BY timestamp) AS next_value1 FROM example_table0 ) t WHERE next_time IS NOT NULL UNION ALL SELECT SUM((next_time - timestamp) * (field1 + next_value1) / 2) AS integral_value FROM ( SELECT timestamp, field1, LEAD(timestamp) OVER (ORDER BY timestamp) AS next_time, LEAD(field1) OVER (ORDER BY timestamp) AS next_value1 FROM example_table1 ) t WHERE next_time IS NOT NULL UNION ALL SELECT SUM((next_time - timestamp) * (field1 + next_value1) / 2) AS integral_value FROM ( SELECT timestamp, field1, LEAD(timestamp) OVER (ORDER BY timestamp) AS next_time, LEAD(field1) OVER (ORDER BY timestamp) AS next_value1 FROM example_table2 ) t WHERE next_time IS NOT NULL ) integrals;"
+  },
+  "integral_2_2_3": {
+    "influx":"union(tables:[from(bucket: \"example_bucket0\") |> range(start: 0)  |> filter(fn: (r) => r._field == \"field1\" or r._field == \"field2\" or r._field == \"field3\"), from(bucket: \"example_bucket1\") |> range(start: 0)  |> filter(fn: (r) => r._field == \"field1\" or r._field == \"field2\" or r._field == \"field3\"), from(bucket: \"example_bucket2\") |> range(start: 0)  |> filter(fn: (r) => r._field == \"field1\" or r._field == \"field2\" or r._field == \"field3\")]) |> sort(columns: [\"_time\"]) |> integral() |> group(columns: []) |> sum(column:\"_value\")",
+    "postgres": "SELECT SUM(integral_value1 + integral_value2 + integral_value3) AS total_integral FROM ( SELECT SUM((next_time - timestamp) * (field1 + next_value1) / 2) AS integral_value1, SUM((next_time - timestamp) * (field2 + next_value2) / 2) AS integral_value2, SUM((next_time - timestamp) * (field3 + next_value3) / 2) AS integral_value3 FROM ( SELECT timestamp, field1, field2, field3, LEAD(timestamp) OVER (ORDER BY timestamp) AS next_time, LEAD(field1) OVER (ORDER BY timestamp) AS next_value1, LEAD(field2) OVER (ORDER BY timestamp) AS next_value2, LEAD(field3) OVER (ORDER BY timestamp) AS next_value3 FROM example_table0 ) t WHERE next_time IS NOT NULL UNION ALL SELECT SUM((next_time - timestamp) * (field1 + next_value1) / 2) AS integral_value1, SUM((next_time - timestamp) * (field2 + next_value2) / 2) AS integral_value2, SUM((next_time - timestamp) * (field3 + next_value3) / 2) AS integral_value3 FROM ( SELECT timestamp, field1, field2, field3, LEAD(timestamp) OVER (ORDER BY timestamp) AS next_time, LEAD(field1) OVER (ORDER BY timestamp) AS next_value1, LEAD(field2) OVER (ORDER BY timestamp) AS next_value2, LEAD(field3) OVER (ORDER BY timestamp) AS next_value3 FROM example_table1 ) t WHERE next_time IS NOT NULL UNION ALL SELECT SUM((next_time - timestamp) * (field1 + next_value1) / 2) AS integral_value1, SUM((next_time - timestamp) * (field2 + next_value2) / 2) AS integral_value2, SUM((next_time - timestamp) * (field3 + next_value3) / 2) AS integral_value3 FROM ( SELECT timestamp, field1, field2, field3, LEAD(timestamp) OVER (ORDER BY timestamp) AS next_time, LEAD(field1) OVER (ORDER BY timestamp) AS next_value1, LEAD(field2) OVER (ORDER BY timestamp) AS next_value2, LEAD(field3) OVER (ORDER BY timestamp) AS next_value3 FROM example_table2 ) t WHERE next_time IS NOT NULL ) integrals;"
+  },
+    "mean_0_0_1": {
+        "influx": "from(bucket: \"example_bucket0\") |> range(start: 0) |> filter(fn: (r) => r._measurement == \"example_measurement0\") |> filter(fn: (r) => r._field == \"field1\") |> mean()",
+        "postgres": "SELECT AVG(field1) FROM example_table0 WHERE measurement = 'example_measurement0';" 
+    },
+    "mean_0_0_3": {
+        "influx": "from(bucket: \"example_bucket0\") |> range(start: 0) |> filter(fn: (r) => r._measurement == \"example_measurement0\") |> filter (fn:(r) => (r._field == \"field1\" or r._field == \"field2\" or r._field == \"field3\")) |> group(columns:[]) |> mean()",
+        "postgres": "SELECT AVG(value) AS overall_avg FROM (SELECT field1 AS value FROM example_table0 WHERE measurement='example_measurement0' UNION ALL SELECT field2 FROM example_table0 WHERE measurement='example_measurement0' UNION ALL SELECT field3 FROM example_table0 WHERE measurement='example_measurement0') AS combined_values;"
+    },
+    "mean_0_2_1": {
+        "influx": "from(bucket: \"example_bucket0\") |> range(start: 0)  |> filter(fn: (r) => r._field == \"field1\") |> group(columns:[]) |> mean()",
+        "postgres": "SELECT AVG(field1) FROM example_table0;"
+        
+    },
+    "mean_0_2_3": {
+        "influx": "from(bucket: \"example_bucket0\") |> range(start: 0)  |> filter(fn: (r) => r._field == \"field1\" or r._field == \"field2\" or r._field == \"field3\") |> group(columns:[]) |> mean()",
+        "postgres": "SELECT AVG(value) AS overall_avg FROM (SELECT field1 AS value FROM example_table0 UNION ALL SELECT field2 FROM example_table0 UNION ALL SELECT field3 FROM example_table0 ) AS combined_values;"      
+        
+    },
+    "mean_2_2_1": {
+        "influx": "union(tables:[from(bucket: \"example_bucket0\") |> range(start: 0)  |> filter(fn: (r) => r._field == \"field1\"), from(bucket: \"example_bucket1\") |> range(start: 0)  |> filter(fn: (r) => r._field == \"field1\"), from(bucket: \"example_bucket2\") |> range(start: 0)  |> filter(fn: (r) => r._field == \"field1\")]) |> group(columns: []) |> mean()",
+        "postgres": "SELECT AVG(value) AS overall_avg FROM (SELECT field1 AS value FROM example_table0 UNION ALL SELECT field1 FROM example_table1 UNION ALL SELECT field1 FROM example_table2) AS combined_values;"    
+        
+    },
+    "mean_2_2_3": {
+        "influx":"union(tables:[from(bucket: \"example_bucket0\") |> range(start: 0)  |> filter(fn: (r) => r._field == \"field1\" or r._field == \"field2\" or r._field == \"field3\"), from(bucket: \"example_bucket1\") |> range(start: 0)  |> filter(fn: (r) => r._field == \"field1\" or r._field == \"field2\" or r._field == \"field3\"), from(bucket: \"example_bucket2\") |> range(start: 0)  |> filter(fn: (r) => r._field == \"field1\" or r._field == \"field2\" or r._field == \"field3\")]) |> group(columns: []) |> mean()",
+        "postgres": "SELECT AVG(value) AS overall_avg FROM (SELECT field1 AS value FROM example_table0 UNION ALL SELECT field2 FROM example_table0 UNION ALL SELECT field3 FROM example_table0 UNION ALL SELECT field1 FROM example_table1 UNION ALL SELECT field2 FROM example_table1 UNION ALL SELECT field3 FROM example_table1 UNION ALL SELECT field1 FROM example_table2 UNION ALL SELECT field2 FROM example_table2 UNION ALL SELECT field3 FROM example_table2) AS combined_values;"        
+        
+    },
+    "median_0_0_1": {
+        "influx": "from(bucket: \"example_bucket0\") |> range(start: 0) |> filter(fn: (r) => r._measurement == \"example_measurement0\") |> filter(fn: (r) => r._field == \"field1\") |> median()",
+        "postgres": "SELECT percentile_cont(0.5) WITHIN GROUP (ORDER BY field1) FROM example_table0 WHERE measurement = 'example_measurement0';"
+        
+    },
+    "median_0_0_3": {
+        "influx": "from(bucket: \"example_bucket0\") |> range(start: 0) |> filter(fn: (r) => r._measurement == \"example_measurement0\") |> filter(fn: (r) => r._field == \"field1\" or r._field == \"field2\" or r._field == \"field3\") |> group(columns:[]) |> median()",
+        "postgres": "SELECT percentile_cont(0.5) WITHIN GROUP (ORDER BY value) AS overall_median FROM (SELECT field1 AS value FROM example_table0 WHERE measurement='example_measurement0' UNION ALL SELECT field2 FROM example_table0 WHERE measurement='example_measurement0' UNION ALL SELECT field3 FROM example_table0 WHERE measurement='example_measurement0') AS combined_values;"
+        
+    },
+    "median_0_2_1": {
+        "influx": "from(bucket: \"example_bucket0\") |> range(start: 0)  |> filter(fn: (r) => r._field == \"field1\") |> group(columns:[]) |> median()",
+        "postgres": "SELECT percentile_cont(0.5) WITHIN GROUP (ORDER BY field1) FROM example_table0;"
+        
+    },
+    "median_0_2_3": {
+        "influx": "from(bucket: \"example_bucket0\") |> range(start: 0)  |> filter(fn: (r) => r._field == \"field1\" or r._field == \"field2\" or r._field == \"field3\") |> group(columns:[]) |> median()",
+        "postgres": "SELECT percentile_cont(0.5) WITHIN GROUP (ORDER BY value) AS overall_median FROM (SELECT field1 AS value FROM example_table0 UNION ALL SELECT field2 FROM example_table0  UNION ALL SELECT field3 FROM example_table0) AS combined_values;"
+        
+    },
+    "median_2_2_1": {
+        "influx": "union(tables:[from(bucket: \"example_bucket0\") |> range(start: 0)  |> filter(fn: (r) => r._field == \"field1\"), from(bucket: \"example_bucket1\") |> range(start: 0)  |> filter(fn: (r) => r._field == \"field1\"), from(bucket: \"example_bucket2\") |> range(start: 0)  |> filter(fn: (r) => r._field == \"field1\")]) |> group(columns:[]) |> median()",
+        "postgres": "SELECT percentile_cont(0.5) WITHIN GROUP (ORDER BY value) AS overall_median FROM (SELECT field1 AS value FROM example_table0 UNION ALL SELECT field1 FROM example_table1  UNION ALL SELECT field1 FROM example_table2) AS combined_values;"
+        
+    },
+    "median_2_2_3": {
+        "influx": "union(tables:[from(bucket: \"example_bucket0\") |> range(start: 0)  |> filter(fn: (r) => r._field == \"field1\" or r._field == \"field2\" or r._field == \"field3\"), from(bucket: \"example_bucket1\") |> range(start: 0)  |> filter(fn: (r) => r._field == \"field1\" or r._field == \"field2\" or r._field == \"field3\"), from(bucket: \"example_bucket2\") |> range(start: 0)  |> filter(fn: (r) => r._field == \"field1\" or r._field == \"field2\" or r._field == \"field3\")]) |> group(columns:[]) |> median() ",
+        "postgres": "SELECT percentile_cont(0.5) WITHIN GROUP (ORDER BY value) AS overall_median FROM (SELECT field1 AS value from example_table0 UNION ALL SELECT field2 FROM example_table0 UNION ALL SELECT field3 FROM example_table0 UNION ALL SELECT field1 from example_table1 UNION ALL SELECT field2 FROM example_table1 UNION ALL SELECT field3 FROM example_table1 UNION ALL SELECT field1 from example_table2 UNION ALL SELECT field2 FROM example_table2 UNION ALL SELECT field3 FROM example_table2 ) AS combined_values;"
+        
+    },
+    "spread_0_0_1": {
+        "influx": "from(bucket: \"example_bucket0\") |> range(start: 0) |> filter(fn: (r) => r._measurement == \"example_measurement0\") |> filter(fn: (r) => r._field == \"field1\") |> spread()",
+        "postgres": "SELECT MAX(field1) - MIN(field1) FROM example_table0 WHERE measurement = 'example_measurement0';"
+        
+    },
+    "spread_0_0_3": {
+        "influx": "from(bucket: \"example_bucket0\") |> range(start: 0) |> filter(fn: (r) => r._measurement == \"example_measurement0\") |> filter(fn: (r) => r._field == \"field1\" or r._field == \"field2\" or r._field == \"field3\") |> group(columns:[]) |> spread()",
+        "postgres": "SELECT MAX(value) - MIN(value) AS spread FROM (SELECT field1 AS value FROM example_table0 WHERE measurement='example_measurement0' UNION ALL SELECT field2 FROM example_table0 WHERE measurement='example_measurement0' UNION ALL SELECT field3 FROM example_table0 WHERE measurement='example_measurement0') AS combined_values;"
+        
+    },
+    "spread_0_2_1": {
+        "influx": "from(bucket: \"example_bucket0\") |> range(start: 0)  |> filter(fn: (r) => r._field == \"field1\") |> group(columns:[]) |> spread()",
+        "postgres": "SELECT MAX(field1) - MIN(field1) FROM example_table0;"
+        
+    },
+    "spread_0_2_3": {
+        "influx": "from(bucket: \"example_bucket0\") |> range(start: 0)  |> filter(fn: (r) => r._field == \"field1\" or r._field == \"field2\" or r._field == \"field3\") |> group(columns:[]) |> spread()",
+        "postgres": "SELECT MAX(value) - MIN(value) AS spread FROM (SELECT field1 AS value FROM example_table0 UNION ALL SELECT field2 FROM example_table0 UNION ALL SELECT field3 FROM example_table0) AS combined_values;"
+        
+    },
+    "spread_2_2_1": {
+        "influx": "union(tables:[from(bucket: \"example_bucket0\") |> range(start: 0)  |> filter(fn: (r) => r._field == \"field1\"), from(bucket: \"example_bucket1\") |> range(start: 0)  |> filter(fn: (r) => r._field == \"field1\"), from(bucket: \"example_bucket2\") |> range(start: 0)  |> filter(fn: (r) => r._field == \"field1\")])|> group(columns:[]) |> spread()",
+        "postgres": "SELECT MAX(value) - MIN(value) AS spread FROM (SELECT field1 AS value FROM example_table0 UNION ALL SELECT field1 FROM example_table1 UNION ALL SELECT field1 FROM example_table2) AS combined_values;"
+        
+    },
+    "spread_2_2_3": {
+        "influx": "union(tables:[from(bucket: \"example_bucket0\") |> range(start: 0)  |> filter(fn: (r) => r._field == \"field1\" or r._field == \"field2\" or r._field == \"field3\"), from(bucket: \"example_bucket1\") |> range(start: 0)  |> filter(fn: (r) => r._field == \"field1\" or r._field == \"field2\" or r._field == \"field3\"), from(bucket: \"example_bucket2\") |> range(start: 0)  |> filter(fn: (r) => r._field == \"field1\" or r._field == \"field2\" or r._field == \"field3\")]) |> group(columns:[]) |> spread()",
+        "postgres": "SELECT MAX(value) - MIN(value) AS spread FROM (SELECT field1 AS value FROM example_table0 UNION ALL SELECT field2 FROM example_table0 UNION ALL SELECT field3 FROM example_table0 UNION ALL SELECT field1 FROM example_table1 UNION ALL SELECT field2 FROM example_table1 UNION ALL SELECT field3 FROM example_table1 UNION ALL SELECT field1 FROM example_table2 UNION ALL SELECT field2 FROM example_table2 UNION ALL SELECT field3 FROM example_table2) AS combined_values;"
+        
+    },
+    "stddev_0_0_1": {
+        "influx": "from(bucket: \"example_bucket0\") |> range(start: 0) |> filter(fn: (r) => r._measurement == \"example_measurement0\") |> filter(fn: (r) => r._field == \"field1\") |> stddev()",
+        "postgres": "SELECT STDDEV(field1) FROM example_table0 WHERE measurement = 'example_measurement0';"
+        
+    },
+    "stddev_0_0_3": {
+        "influx": "from(bucket: \"example_bucket0\") |> range(start: 0) |> filter(fn: (r) => r._measurement == \"example_measurement0\") |> filter(fn: (r) => r._field == \"field1\" or r._field == \"field2\" or r._field == \"field3\") |> group(columns:[]) |> stddev()",
+        "postgres": "SELECT STDDEV(value) AS overall_stddev FROM (SELECT field1 AS value FROM example_table0 WHERE measurement='example_measurement0' UNION ALL SELECT field2 FROM example_table0 WHERE measurement='example_measurement0' UNION ALL SELECT field3 FROM example_table0 WHERE measurement='example_measurement0') AS combined_values;"
+        
+    },
+    "stddev_0_2_1": {
+        "influx": "from(bucket: \"example_bucket0\") |> range(start: 0)  |> filter(fn: (r) => r._field == \"field1\") |> group(columns:[]) |> stddev()",
+        "postgres": "SELECT STDDEV(field1) FROM example_table0;"
+        
+    },
+    "stddev_0_2_3": {
+        "influx": "from(bucket: \"example_bucket0\") |> range(start: 0)  |> filter(fn: (r) => r._field == \"field1\" or r._field == \"field2\" or r._field == \"field3\") |> group(columns:[]) |> stddev()",
+        "postgres": "SELECT STDDEV(value) AS overall_stddev FROM (SELECT field1 AS value FROM example_table0 UNION ALL SELECT field2 FROM example_table0 UNION ALL SELECT field3 FROM example_table0) AS combined_values;"
+        
+    },
+    "stddev_2_2_1": {
+        "influx": "union(tables:[from(bucket: \"example_bucket0\") |> range(start: 0)  |> filter(fn: (r) => r._field == \"field1\"), from(bucket: \"example_bucket1\") |> range(start: 0)  |> filter(fn: (r) => r._field == \"field1\"), from(bucket: \"example_bucket2\") |> range(start: 0)  |> filter(fn: (r) => r._field == \"field1\")]) |> group(columns: []) |> stddev()",
+        "postgres": "SELECT STDDEV(value) AS overall_stddev FROM (SELECT field1 AS value FROM example_table0 UNION ALL SELECT field1 FROM example_table1 UNION ALL SELECT field1 FROM example_table2) AS combined_values;"
+        
+    },
+    "stddev_2_2_3": {
+        "influx": "union(tables:[from(bucket: \"example_bucket0\") |> range(start: 0)  |> filter(fn: (r) => r._field == \"field1\" or r._field == \"field2\" or r._field == \"field3\"), from(bucket: \"example_bucket1\") |> range(start: 0)  |> filter(fn: (r) => r._field == \"field1\" or r._field == \"field2\" or r._field == \"field3\"), from(bucket: \"example_bucket2\") |> range(start: 0)  |> filter(fn: (r) => r._field == \"field1\" or r._field == \"field2\" or r._field == \"field3\")]) |> group(columns:[]) |> stddev()",
+        "postgres": "SELECT STDDEV(value) AS overall_stddev FROM (SELECT field1 AS value FROM example_table0 UNION ALL SELECT field2 FROM example_table0 UNION ALL SELECT field3 FROM example_table0 UNION ALL SELECT field1 FROM example_table1 UNION ALL SELECT field2 FROM example_table1 UNION ALL SELECT field3 FROM example_table1 UNION ALL SELECT field1 FROM example_table2 UNION ALL SELECT field2 FROM example_table2 UNION ALL SELECT field3 FROM example_table2) AS combined_values;"
+        
+    },
+    "sum_0_0_1": {
+        "influx": "from(bucket: \"example_bucket0\") |> range(start: 0) |> filter(fn: (r) => r._measurement == \"example_measurement0\") |> filter(fn: (r) => r._field == \"field1\") |> sum()",
+        "postgres": "SELECT SUM(field1) FROM example_table0 WHERE measurement = 'example_measurement0';"
+        
+    },
+    "sum_0_0_3": {
+        "influx": "from(bucket: \"example_bucket0\") |> range(start: 0) |> filter(fn: (r) => r._measurement == \"example_measurement0\") |> filter(fn: (r) => r._field == \"field1\" or r._field == \"field2\" or r._field == \"field3\") |> group(columns:[]) |> sum()",
+        "postgres": "SELECT SUM(value) AS overall_sum FROM (SELECT field1 AS value FROM example_table0 WHERE measurement='example_measurement0' UNION ALL SELECT field2 FROM example_table0 WHERE measurement='example_measurement0' UNION ALL SELECT field3 FROM example_table0 WHERE measurement='example_measurement0') AS combined_values;"
+        
+    },
+    "sum_0_2_1": {
+        "influx": "from(bucket: \"example_bucket0\") |> range(start: 0)  |> filter(fn: (r) => r._field == \"field1\")|> group(columns:[]) |> sum()",
+        "postgres": "SELECT SUM(field1) FROM example_table0;"
+        
+    },
+    "sum_0_2_3": {
+        "influx": "from(bucket: \"example_bucket0\") |> range(start: 0)  |> filter(fn: (r) => r._field == \"field1\" or r._field == \"field2\" or r._field == \"field3\")|> group(columns:[]) |> sum()",
+        "postgres": "SELECT SUM(value) AS overall_sum FROM (SELECT field1 AS value FROM example_table0 UNION ALL SELECT field2 FROM example_table0 UNION ALL SELECT field3 FROM example_table0) AS combined_values;"
+        
+    },
+    "sum_2_2_1": {
+        "influx": "union(tables:[from(bucket: \"example_bucket0\") |> range(start: 0)  |> filter(fn: (r) => r._field == \"field1\"), from(bucket: \"example_bucket1\") |> range(start: 0)  |> filter(fn: (r) => r._field == \"field1\"), from(bucket: \"example_bucket2\") |> range(start: 0)  |> filter(fn: (r) => r._field == \"field1\")]) |> group(columns:[]) |> sum()",
+        "postgres": "SELECT SUM(value) AS overall_sum FROM (SELECT field1 AS value FROM example_table0 UNION ALL SELECT field1 FROM example_table1 UNION ALL SELECT field1 FROM example_table2) AS combined_values;"
+        
+    },
+    "sum_2_2_3": {
+        "influx": "union(tables:[from(bucket: \"example_bucket0\") |> range(start: 0)  |> filter(fn: (r) => r._field == \"field1\" or r._field == \"field2\" or r._field == \"field3\"), from(bucket: \"example_bucket1\") |> range(start: 0)  |> filter(fn: (r) => r._field == \"field1\" or r._field == \"field2\" or r._field == \"field3\"), from(bucket: \"example_bucket2\") |> range(start: 0)  |> filter(fn: (r) => r._field == \"field1\" or r._field == \"field2\" or r._field == \"field3\")]) |> group(columns:[]) |> sum()",
+        "postgres": "SELECT SUM(value) AS overall_sum FROM (SELECT field1 AS value FROM example_table0 UNION ALL SELECT field2 FROM example_table0 UNION ALL SELECT field3 FROM example_table0 UNION ALL SELECT field1 FROM example_table1 UNION ALL SELECT field2 FROM example_table1 UNION ALL SELECT field3 FROM example_table1 UNION ALL SELECT field1 FROM example_table2 UNION ALL SELECT field2 FROM example_table2 UNION ALL SELECT field3 FROM example_table2) AS combined_values;"
+        
+    }
+}
