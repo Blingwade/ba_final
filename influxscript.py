@@ -258,12 +258,10 @@ def manage_influxdb():
         print("Stoppe den Container...")
         try:
             
-            container_name = "influxdb-container"
-            result = subprocess.run(["docker", "ps", "-s"], capture_output=True, text=True)
+            
+          
             print(container.stats(decode=None,stream = False)['memory_stats'])
-            f = open("influxcontainerstats.txt","a")
-            f.write(str(result.stdout))
-            f.close()
+            
             container.stop()
             container.remove()
             print("Container erfolgreich gestoppt und gelöscht.")
