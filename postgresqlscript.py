@@ -150,7 +150,7 @@ def manage_postgresql_with_docker():
             f = open(prefix + "postgresqldata2.txt" , "r")
 
             # take lines from the file, separate them at every "," , delete /n and convert to tuple
-            data2 = [tuple(line.strip('\n').split(",")) for line in f.readlines()] # most cursed line of code i have ever written
+            data2 = [tuple(line.strip('\n').split(",")) for line in f.readlines()] 
             #data = [line.strip('\n') for line in f.readlines()]
             data2_out = []
             for t in data2:
