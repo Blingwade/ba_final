@@ -76,33 +76,4 @@ for run_i in range(run_count_min, run_count_max):
 	write_time += time.time_ns() - starttime
 
 print("GEN_TIME=" + str(gen_time) + " | " + "WRITE_TIME=" + str(write_time))
-	#f = open("influxdata0.txt", "w")
-	#f.write(influxdata[0])
-	#f.close()
-	#f = open("influxdata1.txt", "w")
-	#f.write(influxdata[1])
-	#f.close()
-	#f = open("influxdata2.txt", "w")
-	#f.write(influxdata[2])
-	#f.close()
-	#
-	#f = open("postgresqldata0.txt", "w")
-	#f.write(postgresqldata[0])
-	#f.close()
-	#
-	#f = open("postgresqldata1.txt", "w")
-	#f.write(postgresqldata[1])
-	#f.close()
-	#
-	#f = open("postgresqldata2.txt", "w")
-	#f.write(postgresqldata[2])
-	#f.close()
-
-	#import matplotlib.pyplot as plt
-
-	#plt.plot(pure2)
-	#plt.ylabel('some numbers')
-	#plt.savefig("example.png")
-
-	#INSERT INTO example_table1 (tag1, field1, field2, field3, timestamp)
-		#VALUES (%s, %s, %s, %s, %s);
+	
